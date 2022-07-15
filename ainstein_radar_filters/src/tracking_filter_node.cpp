@@ -33,7 +33,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <tf2_eigen/tf2_eigen.h>
+#include <tf2_eigen/tf2_eigen.h> // гоюл
 
 class TrackingFilterROS
 {
