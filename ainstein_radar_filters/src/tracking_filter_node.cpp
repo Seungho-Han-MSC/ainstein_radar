@@ -33,7 +33,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <tf2_eigen/tf2_eigen.h> // 하이
+#include <tf2_eigen/tf2_eigen.h>
 
 class TrackingFilterROS
 {
@@ -44,7 +44,7 @@ public:
   {
     // Set up dynamic reconfigure:
     dynamic_reconfigure::Server<ainstein_radar_filters::TrackingFilterConfig>::CallbackType f;
-    f = boost::bind(&TrackingFilterROS::dynConfigCallback, this, _1, _2);
+    f = boost::bind(&TrackingFilterROS::dynConfigCallback, this, _1, _2); // Binding 
     dyn_config_server_.setCallback(f);
 
     publish_freq_ = publish_frequency;
@@ -94,7 +94,7 @@ public:
 
     pub_bounding_boxes_ = nh_private_.advertise<ainstein_radar_msgs::BoundingBoxArray>("boxes", 1);
 
-    tracking_filter_.initialize();
+    tracking_filter_.initialize(); // update, process Thread 생성
 
     // Launch the periodic publishing thread:
     publish_thread_ =
@@ -110,54 +110,54 @@ public:
     bool first_time = true;
     ros::Time time_now, time_prev;
     double dt;
-    while (ros::ok() && !ros::isShuttingDown())
+    while (ros::ok() && !ros::isShuttingDown()) // multi-threading으로서, ros가 종료될 때까지 계속 실행
     {
       // Get tracked object targets from filter:
       msg_tracked_targets_.targets.clear();
       msg_tracked_targets_.header.stamp = ros::Time::now();
 
       std::vector<ainstein_radar_filters::RadarTarget> tracked_objects;
-      tracking_filter_.getTrackedObjects(tracked_objects);
+      tracking_filter_.getTrackedObjects(tracked_objects); // object 획득?
 
       // Get targets associated with alive filters:
       msg_tracked_boxes_.boxes.clear();
       msg_tracked_boxes_.header.stamp = ros::Time::now();
 
       std::vector<std::vector<ainstein_radar_filters::RadarTarget>> tracked_object_targets;
-      tracking_filter_.getTrackedObjectTargets(tracked_object_targets);
+      tracking_filter_.getTrackedObjectTargets(tracked_object_targets); // target assoication 획득? object_targets들을 모아서 object를 생성?
 
       // Fill the tracked object targets message, optionally filtering, then publish:
-      for (int i = 0; i < tracked_objects.size(); ++i)
+      for (int i = 0; i < tracked_objects.size(); ++i) // object들의 id가 i임
       {
         double mean_speed = std::accumulate(tracked_object_targets.at(i).begin(), tracked_object_targets.at(i).end(), 0.0,
         [] (double sum, const ainstein_radar_filters::RadarTarget &t) {return sum + t.speed;});
-        mean_speed = mean_speed / tracked_object_targets.at(i).size();
+        mean_speed = mean_speed / tracked_object_targets.at(i).size(); // 평균속도 구함
 
-	if (use_speed_filter_)
-	  {
-	    if (std::abs(tracked_objects.at(i).speed - mean_speed) <= filter_speed_diff_)
+	    if (use_speed_filter_)
 	      {
-		ainstein_radar_msgs::RadarTarget t;
-		t.target_id = i;
-		t.range = tracked_objects.at(i).range;
-		t.speed = tracked_objects.at(i).speed;
-		t.azimuth = tracked_objects.at(i).azimuth;
-		t.elevation = tracked_objects.at(i).elevation;
+	        if (std::abs(tracked_objects.at(i).speed - mean_speed) <= filter_speed_diff_)
+	          {
+		    ainstein_radar_msgs::RadarTarget t;
+		    t.target_id = i;
+		    t.range = tracked_objects.at(i).range;
+		    t.speed = tracked_objects.at(i).speed; // use_speed_filter_ 의 역할: 점군 데이터의 평균속도와 큰 차이가 안날 때만, 속도 업데이트함
+		    t.azimuth = tracked_objects.at(i).azimuth;
+		    t.elevation = tracked_objects.at(i).elevation;
 		
-		msg_tracked_targets_.targets.push_back(t);
-	      } 
-	  }
-	else
-	  {
-	    ainstein_radar_msgs::RadarTarget t;
-	    t.target_id = i;
-	    t.range = tracked_objects.at(i).range;
-	    t.speed = tracked_objects.at(i).speed;
-	    t.azimuth = tracked_objects.at(i).azimuth;
-	    t.elevation = tracked_objects.at(i).elevation;
+		    msg_tracked_targets_.targets.push_back(t);
+	          } 
+	      }
+	    else
+	      {
+	        ainstein_radar_msgs::RadarTarget t;
+	        t.target_id = i;
+	        t.range = tracked_objects.at(i).range;
+	        t.speed = tracked_objects.at(i).speed;
+	        t.azimuth = tracked_objects.at(i).azimuth;
+	        t.elevation = tracked_objects.at(i).elevation;
 	    
-	    msg_tracked_targets_.targets.push_back(t);
-	  }
+	        msg_tracked_targets_.targets.push_back(t);
+	      }
       }
 
       pub_radar_data_tracked_.publish(msg_tracked_targets_);
@@ -167,7 +167,7 @@ public:
       {
         ainstein_radar_msgs::RadarTargetArray msg_targets;
         msg_targets.header.frame_id = msg_tracked_boxes_.header.frame_id;  // need to pass this through
-        for (const auto& t : targets)
+        for (const auto& t : targets) // 각각의 object target에 대해, bounding box 계산
         {
           ainstein_radar_msgs::RadarTarget target;
           target.range = t.range;
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
   double filter_speed_diff = node_handle_private.param("filter_speed_diff", 1.0);
   TrackingFilterROS tracking_filter_ros(node_handle, node_handle_private, publish_freq, use_speed_filter, filter_speed_diff);
 
-  tracking_filter_ros.initialize();
+  tracking_filter_ros.initialize(); // initialize: create sub/pub topic, make publish_thread_ -> mutli threading: publishLoop
 
   ros::spin();
 

@@ -33,7 +33,7 @@ const int TrackingFilter::max_tracked_targets = 100;
 void TrackingFilter::initialize(void)
 {
   // Reserve space for the maximum number of target Kalman Filters:
-  filters_.reserve(TrackingFilter::max_tracked_targets);
+  filters_.reserve(TrackingFilter::max_tracked_targets); // 어디서 정의되지..? -> 헤더파일에서! RadarTargetKF 이름의 벡터파일로서, range/speed/azimuth/elevation이 담김
 
   // Launch the periodic filter update thread:
   filter_process_thread_ =
